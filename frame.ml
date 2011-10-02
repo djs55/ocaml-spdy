@@ -38,6 +38,14 @@ module Message = struct
 
 end
 
+let take num one bits =
+  let rec loop acc bits = function
+    | 0l -> List.rev acc
+    | n ->
+      let nv, rest = one bits in
+      loop (nv :: acc) rest (Int32.sub n 1l) in
+  loop [] bits num
+
 module NVPairs = struct
   let unmarshal bits =
     let num, rest = bitmatch bits with
@@ -53,12 +61,7 @@ module NVPairs = struct
 	  rest: -1: bitstring
 	} -> (name, v), rest
       | { _ } -> failwith "Failed to parse NVPair" in
-    let rec loop acc bits = function
-      | 0l -> List.rev acc
-      | n ->
-	let nv, rest = one bits in
-	loop (nv :: acc) rest (Int32.sub n 1l) in
-    loop [] rest num
+    take num one rest
 end
 
 module IdVPairs = struct
@@ -73,12 +76,7 @@ module IdVPairs = struct
 	  v: 32
 	} -> (id, flags, v), rest
       | { _ } -> failwith "Failed to parse NVPair" in
-    let rec loop acc bits = function
-      | 0l -> List.rev acc
-      | n ->
-	let nv, rest = one bits in
-	loop (nv :: acc) rest (Int32.sub n 1l) in
-    loop [] rest num    
+    take num one rest
 end
 
 module Control = struct
