@@ -118,11 +118,28 @@ module Control = struct
   module Reply = struct
     type flag =
       | Fin
+    let flags = [
+      0x1, Fin
+    ]
     type t = {
       stream_id: int; (* 31 bits *)
       flags: flag list;
       headers: (string * string) list;
     }
+    let unmarshal (x: Message.t) =
+      bitmatch x.Message.data with
+	| { _: 1;
+	    stream_id: 31;
+	    _: 16;
+	    rest: -1: bitstring } ->
+	  let flags = List.map snd (List.filter (fun (mask, flag) -> x.Message.flags land mask <> 0) flags) in
+	  let headers = NVPairs.unmarshal rest in {
+	    stream_id = stream_id;
+	    flags = flags;
+	    headers = headers
+	  }
+	| { _ } -> failwith "Failed to parse REPLY"
+
   end
   module Rst = struct
     type status_code = 
@@ -255,6 +272,18 @@ module Control = struct
     | Ping of Ping.t
     | Goaway of Goaway.t
     | Headers of Headers.t
+  let unmarshal (x: Message.t) =
+    (* assume control and version have values we recognise *)
+    match x.Message.ty with
+      | 1 -> Syn (Syn.unmarshal x)
+      | 2 -> Reply (Reply.unmarshal x)
+      | 3 -> Rst (Rst.unmarshal x)
+      | 4 -> Settings (Settings.unmarshal x)
+      | 5 -> Noop (Noop.unmarshal x)
+      | 6 -> Ping (Ping.unmarshal x)
+      | 7 -> Goaway (Goaway.unmarshal x)
+      | 8 -> Headers (Headers.unmarshal x)
+      | x -> failwith (Printf.sprintf "Unknown CONTROL message type: %d" x)
 end
 
 
