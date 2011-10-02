@@ -115,10 +115,30 @@ module Control = struct
       | Cancel
       | Internal_error
       | Flow_control_error
+    let status_codes = [
+      1l, Protocol_error;
+      2l, Invalid_stream;
+      3l, Refused_stream;
+      4l, Unsupported_version;
+      5l, Cancel;
+      6l, Internal_error;
+      7l, Flow_control_error
+    ]
     type t = {
       stream_id: int; (* 31 bits *)
       status_code: status_code;
     }
+    let unmarshal (x: Message.t) =
+      bitmatch x.Message.data with
+	| { _: 1;
+	    stream_id: 31;
+	    status_code: 32
+	  } ->
+	  if not (List.mem_assoc status_code status_codes)
+	  then failwith (Printf.sprintf "Unknown RST status code: %ld" status_code);
+	  { stream_id = stream_id;
+	    status_code = List.assoc status_code status_codes }
+	| { _ } -> failwith "Failed to parse RST"
   end
   module Settings = struct
     type flag =
