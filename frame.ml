@@ -43,7 +43,7 @@ module NVPairs = struct
     let num, rest = bitmatch bits with
       | { num: 16;
 	  rest: -1: bitstring
-	} -> num, rest
+	} -> Int32.of_int num, rest
       | { _ } -> failwith "Failed to parse NVPairs len" in
     let one bits = bitmatch bits with
       | { name_len: 16;
@@ -54,11 +54,31 @@ module NVPairs = struct
 	} -> (name, v), rest
       | { _ } -> failwith "Failed to parse NVPair" in
     let rec loop acc bits = function
-      | 0 -> List.rev acc
+      | 0l -> List.rev acc
       | n ->
 	let nv, rest = one bits in
-	loop (nv :: acc) rest (n - 1) in
+	loop (nv :: acc) rest (Int32.sub n 1l) in
     loop [] rest num
+end
+
+module IdVPairs = struct
+  let unmarshal bits =
+    let num, rest = bitmatch bits with
+      | { num: 32;
+	  rest: -1: bitstring
+	} -> num, rest in
+    let one bits = bitmatch bits with
+      | { id: 24;
+	  flags: 8;
+	  v: 32
+	} -> (id, flags, v), rest
+      | { _ } -> failwith "Failed to parse NVPair" in
+    let rec loop acc bits = function
+      | 0l -> List.rev acc
+      | n ->
+	let nv, rest = one bits in
+	loop (nv :: acc) rest (Int32.sub n 1l) in
+    loop [] rest num    
 end
 
 module Control = struct
