@@ -234,6 +234,17 @@ module Control = struct
       stream_id: int; (* 31 bits *)
       headers: (string * string) list;
     }
+    let unmarshal (x: Message.t) =
+      bitmatch x.Message.data with
+	| { _: 1;
+	    stream_id: 31;
+	    _: 16;
+	    rest: -1: bitstring } ->
+	  let headers = NVPairs.unmarshal rest in {
+	    stream_id = stream_id;
+	    headers = headers
+	  }
+	| { _ } -> failwith "Failed to parse HEADERS"
   end
   type t =
     | Syn of Syn.t
