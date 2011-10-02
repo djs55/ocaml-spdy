@@ -221,6 +221,13 @@ module Control = struct
     type t = {
       last_good_stream_id: int; (* 31 bits *)
     }
+    let unmarshal (x: Message.t) =
+      bitmatch x.Message.data with
+	| { _: 1;
+	    last_good_stream_id: 31 } -> {
+	  last_good_stream_id = last_good_stream_id
+	}
+	| { _ } -> failwith "Failed to parse GOAWAY"
   end
   module Headers = struct
     type t = {
