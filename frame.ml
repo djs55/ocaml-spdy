@@ -79,6 +79,9 @@ module IdVPairs = struct
     take num one rest
 end
 
+let parse_flags table x =
+  List.map snd (List.filter (fun (mask, flag) -> x.Message.flags land mask <> 0) table)
+
 module Control = struct
   module Syn = struct
     type flag =
@@ -96,7 +99,7 @@ module Control = struct
       headers: (string * string) list;
     }
     let unmarshal (x: Message.t) =
-      let flags = List.map snd (List.filter (fun (mask, flag) -> x.Message.flags land mask <> 0) flags) in
+      let flags = parse_flags flags x in
       bitmatch x.Message.data with
 	| { _: 1;
 	    stream_id: 31;
@@ -132,7 +135,7 @@ module Control = struct
 	    stream_id: 31;
 	    _: 16;
 	    rest: -1: bitstring } ->
-	  let flags = List.map snd (List.filter (fun (mask, flag) -> x.Message.flags land mask <> 0) flags) in
+	  let flags = parse_flags flags x in
 	  let headers = NVPairs.unmarshal rest in {
 	    stream_id = stream_id;
 	    flags = flags;
@@ -210,7 +213,7 @@ module Control = struct
       settings: (id * id_flag * Int32.t) list;
     }
     let unmarshal (x: Message.t) =
-      let flags = List.map snd (List.filter (fun (mask, flag) -> x.Message.flags land mask <> 0) flags) in
+      let flags = parse_flags flags x in
       let raw_settings = IdVPairs.unmarshal x.Message.data in
       let settings =
 	List.map (fun (id, id_flag, v) ->
