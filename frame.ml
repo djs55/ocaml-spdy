@@ -212,6 +212,10 @@ module Control = struct
   end
   module Ping = struct
     type t = int32
+    let unmarshal (x: Message.t) =
+      bitmatch x.Message.data with
+	| { id: 32 } -> id
+	| { _ } -> failwith "Failed to parse PING"
   end
   module Goaway = struct
     type t = {
