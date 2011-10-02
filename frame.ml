@@ -161,9 +161,16 @@ module Control = struct
   module Settings = struct
     type flag =
       | Clear_previously_persisted_settings
+    let flags = [
+      0x1, Clear_previously_persisted_settings
+    ]
     type id_flag =
       | Persist_value
       | Persisted
+    let id_flags = [
+      0x1, Persist_value;
+      0x2, Persisted;
+    ]
     type id =
       | Upload_bandwidth
       | Download_bandwidth
@@ -172,10 +179,32 @@ module Control = struct
       | Current_cwnd
       | Download_retrans_rate
       | Initial_window_size
+    let ids = [
+      1, Upload_bandwidth;
+      2, Download_bandwidth;
+      3, Round_trip_time;
+      4, Max_concurrent_streams;
+      5, Current_cwnd;
+      6, Download_retrans_rate;
+      7, Initial_window_size;
+    ]
     type t = {
       flags: flag list;
       settings: (id * id_flag * Int32.t) list;
     }
+    let unmarshal (x: Message.t) =
+      let flags = List.map snd (List.filter (fun (mask, flag) -> x.Message.flags land mask <> 0) flags) in
+      let raw_settings = IdVPairs.unmarshal x.Message.data in
+      let settings =
+	List.map (fun (id, id_flag, v) ->
+	  if not(List.mem_assoc id ids)
+	  then failwith (Printf.sprintf "Unknown SETTINGS id %d" id);
+	  if not(List.mem_assoc id_flag id_flags)
+	  then failwith (Printf.sprintf "Unknown SETTINGS id_flag %d" id_flag);
+	  List.assoc id ids, List.assoc id_flag id_flags, v
+	) raw_settings in
+      { flags = flags;
+	settings = settings }
   end
   module Noop = struct
     type t = unit
