@@ -208,6 +208,7 @@ module Control = struct
   end
   module Noop = struct
     type t = unit
+    let unmarshal (x: Message.t) = ()
   end
   module Ping = struct
     type t = int32
